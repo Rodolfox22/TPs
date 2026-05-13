@@ -4,8 +4,8 @@ import numpy as np
 # ------------------------------------------------------------
 # PARÁMETROS
 # ------------------------------------------------------------
-AREA_MINIMA = 500
-TOLERANCIA_CUADRADO = 0.15
+AREA_MINIMA = 200
+TOLERANCIA_CUADRADO = 0.85
 
 # ------------------------------------------------------------
 # PIPELINE DE PROCESAMIENTO
