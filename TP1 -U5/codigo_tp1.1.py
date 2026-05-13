@@ -1,10 +1,13 @@
 import cv2
+import numpy as np
+import math
 
 # ------------------------------------------------------------
 # PARÁMETROS
 # ------------------------------------------------------------
-AREA_MINIMA = 200
-TOLERANCIA_CUADRADO = 0.25
+AREA_MINIMA = 500
+UMBRAL_CIRCULARIDAD = 0.80   # Cercano a 1 = más circular
+TOLERANCIA_BBOX = 0.15       # Relación ancho/alto del bounding box
 
 # ------------------------------------------------------------
 # PIPELINE DE PROCESAMIENTO
@@ -39,30 +42,31 @@ for contorno in contornos:
     if area < AREA_MINIMA:
         continue
 
-    # Aproximar polígono y verificar que sea cuadrilátero
-    epsilon = 0.02 * cv2.arcLength(contorno, True)
-    vertices = cv2.approxPolyDP(contorno, epsilon, True)
-    if not (4 <= len(vertices) <= 6):
+    # Calcular circularidad: 4 * pi * área / perímetro²
+    perimetro = cv2.arcLength(contorno, True)
+    if perimetro == 0:
         continue
+    circularidad = (4 * math.pi * area) / (perimetro ** 2)
 
-    # Obtener bounding box
+    # Obtener bounding box y relación ancho/alto
     x, y, ancho, alto = cv2.boundingRect(contorno)
     relacion_aspecto = ancho / alto
 
-    # Clasificar: cuadrado o rectángulo
-    if abs(relacion_aspecto - 1.0) <= TOLERANCIA_CUADRADO:
-        etiqueta = "CUADRADO"
-        color = (0, 255, 255)   # Amarillo
-    else:
-        etiqueta = "RECTANGULO"
-        color = (255, 0, 255)   # Magenta
+    # Criterio circular:
+    # - Circularidad cercana a 1
+    # - Bounding box aproximadamente cuadrado (ancho ≈ alto)
+    bbox_cuadrada = abs(relacion_aspecto - 1.0) <= TOLERANCIA_BBOX
+    es_circulo = circularidad >= UMBRAL_CIRCULARIDAD and bbox_cuadrada
 
-    # Dibujar bounding box y nombre
-    cv2.rectangle(imagen_resultado, (x, y), (x + ancho, y + alto), color, 2)
-    cv2.putText(imagen_resultado, etiqueta, (x, y - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+    if not es_circulo:
+        continue
 
-cv2.imshow('4. Clasificacion Final', imagen_resultado)
+    # Dibujar bounding box y etiqueta
+    cv2.rectangle(imagen_resultado, (x, y), (x + ancho, y + alto), (0, 165, 255), 2)  # Naranja
+    cv2.putText(imagen_resultado, f"CIRCULO ({circularidad:.2f})", (x, y - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+
+cv2.imshow('4. Clasificacion Final - Circulos', imagen_resultado)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
